@@ -1,7 +1,6 @@
 #include <asm-generic/ioctls.h>
 #include <cstdlib>
 #include <fcntl.h>
-#include <format>
 #include <iostream>
 #include <string>
 #include <sys/ioctl.h>
@@ -63,7 +62,7 @@ void enableRawMode() {
   tcsetattr(STDIN_FILENO, TCSAFLUSH, &raw);
 }
 
-char editorReadKey() {
+char readKey() {
   int nread;
   char c;
   while ((nread = read(STDIN_FILENO, &c, 1)) != 1) {
@@ -74,7 +73,7 @@ char editorReadKey() {
 }
 
 void processKeypress() {
-  char c = editorReadKey();
+  char c = readKey();
   switch (c) {
   case 'q':
     write(STDOUT_FILENO, "\x1b[2J", 4);
@@ -83,40 +82,37 @@ void processKeypress() {
     break;
     // Rename
   case 'r': {
-    std::cout << "(" << int(c) << ") " << char(c) << "\r" << std::endl;
     break;
   }
   // Preview
   case 'p': {
-    std::cout << "(" << int(c) << ") " << char(c) << "\r" << std::endl;
     break;
   }
   // Search
   case 's': {
-    std::cout << "(" << int(c) << ") " << char(c) << "\r" << std::endl;
     break;
   }
     // Inputs for navigation
     // Open folder or file
   case 'l': {
-    std::cout << "(" << int(c) << ") " << char(c) << "\r" << std::endl;
     break;
   }
   // Up
   case 'k': {
-    std::cout << "(" << int(c) << ") " << char(c) << "\r" << std::endl;
-    E.cx--;
+    if (E.cx > 1) {
+      E.cx--;
+    }
     break;
   }
   // Down
   case 'j': {
-    std::cout << "(" << int(c) << ") " << char(c) << "\r" << std::endl;
-    E.cx++;
+    if (E.cx < E.screenrows) {
+      E.cx++;
+    }
     break;
   }
   // Back to previous folder (block if in /home/saoii/)
   case 'h': {
-    std::cout << "(" << int(c) << ") " << char(c) << "\r" << std::endl;
     break;
   }
   }
