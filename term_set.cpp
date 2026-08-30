@@ -93,16 +93,14 @@ void processKeypress() {
   }
   // Back to previous folder (block if in /home/saoii/)
   case 'h': {
+    std::string folder_being_opened = "";
+    loadEntriesFrPath(E.full_path, folder_being_opened);
     break;
   }
   }
 }
 
 void drawRows() {
-  std::string path = "/home/saoii/";
-  for (const auto &entry : fs::directory_iterator(path)) {
-    entries.push_back(entry);
-  }
   for (int i = 0; i < E.screenrows; i++) {
     int index = i + E.window_offset;
     if (index >= entries.size())
@@ -141,6 +139,18 @@ void refreshScreen() {
 void initExplorer() {
   E.cx = 1;
 
+  loadEntriesFrPath(E.full_path, "");
+
   if (getWinSize(&E.screenrows, &E.screencols) == -1)
     die("getWinSize");
+
+  for (const auto &entry : fs::directory_iterator(E.full_path)) {
+    entries.push_back(entry);
+  }
+}
+
+void loadEntriesFrPath(std::string path_prefix, std::string path_end) {
+  for (const auto &entry : fs::directory_iterator(E.full_path)) {
+    entries.push_back(entry);
+  }
 }

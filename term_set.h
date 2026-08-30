@@ -1,6 +1,6 @@
 #include <asm-generic/ioctls.h>
-#include <cstdlib>
 #include <fcntl.h>
+#include <string>
 #include <sys/ioctl.h>
 #include <termios.h>
 #include <unistd.h>
@@ -12,6 +12,7 @@ struct Config {
   int screenrows;
   int screencols;
   int window_offset = 0;
+  std::string full_path;
   struct termios orig_termios;
 };
 
@@ -32,3 +33,5 @@ int getWinSize(int *rows, int *cols);
 void refreshScreen();
 
 void initExplorer();
+
+void loadEntriesFrPath(std::string path_prefix, std::string path_end);

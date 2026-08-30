@@ -1,7 +1,7 @@
 #include "term_set.h"
 #include <asm-generic/ioctls.h>
-#include <cstdlib>
 #include <fcntl.h>
+#include <filesystem>
 #include <sys/ioctl.h>
 #include <termios.h>
 #include <unistd.h>
@@ -22,8 +22,14 @@
  m
  the terminal for the preview line pull length
  */
+namespace fs = std::filesystem;
 
-int main() {
+int main(int argc, char *argv[]) {
+  E.full_path = fs::current_path().string();
+  if (argc > 1) {
+    E.full_path = E.full_path + argv[1];
+  }
+
   // Set the terminal to "Raw" mode
   enableRawMode();
   // Init the explorer sceen
