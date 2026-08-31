@@ -1,11 +1,15 @@
 #include <asm-generic/ioctls.h>
 #include <fcntl.h>
+#include <filesystem>
 #include <string>
 #include <sys/ioctl.h>
 #include <termios.h>
 #include <unistd.h>
+#include <vector>
 
 void die(const char *s);
+
+namespace fs = std::filesystem;
 
 struct Config {
   int cx;
@@ -14,6 +18,7 @@ struct Config {
   int window_offset = 0;
   std::string full_path;
   struct termios orig_termios;
+  std::vector<std::filesystem::directory_entry> entries;
 };
 
 extern Config E;
@@ -34,4 +39,10 @@ void refreshScreen();
 
 void initExplorer();
 
-void loadEntriesFrPath(std::string path_prefix, std::string path_end);
+void loadEntriesFrPath(fs::path full_path_entries);
+
+void check_if_file(fs::path path_to_check);
+
+void openInEditor(const fs::path &file);
+
+void openInViewer(const fs::path &file);
