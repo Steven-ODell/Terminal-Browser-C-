@@ -13,10 +13,11 @@ namespace fs = std::filesystem;
 
 struct Config {
   int cx;
-  int screenrows;
-  int screencols;
+  int screen_rows;
+  int screen_cols;
   int window_offset = 0;
   std::string full_path;
+  std::string previous_path;
   struct termios orig_termios;
   std::vector<std::filesystem::directory_entry> entries;
 };
@@ -41,7 +42,7 @@ void initExplorer();
 
 void loadEntriesFrPath(fs::path full_path_entries);
 
-void check_if_file(fs::path path_to_check);
+void checkIfFile(fs::path path_to_check);
 
 void openInEditor(const fs::path &file);
 

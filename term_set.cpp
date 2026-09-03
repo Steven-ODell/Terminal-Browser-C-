@@ -65,6 +65,7 @@ void processKeypress() {
     // Inputs for navigation
     // Open folder or file
   case 'l': {
+    E.previous_path = E.full_path;
     fs::directory_entry folder_being_opened = E.entries[E.cx - 1];
     loadEntriesFrPath(folder_being_opened);
     write(STDOUT_FILENO, "\x1b[H", 4);
@@ -81,31 +82,33 @@ void processKeypress() {
   }
   // Down
   case 'j': {
-    if (E.cx < E.screenrows - (E.screenrows / 2)) {
+    if (E.cx < E.screen_rows - (E.screen_rows / 2)) {
       E.cx++;
-    } else if (E.window_offset + E.screenrows < E.entries.size()) {
+    } else if (E.window_offset + E.screen_rows < E.entries.size()) {
       E.window_offset++;
-    } else if (E.cx < E.screenrows) {
+    } else if (E.cx < E.screen_rows) {
       E.cx++;
     }
     break;
   }
   // Back to previous folder (block if in /home/saoii/)
   case 'h': {
+    loadEntriesFrPath(E.previous_path);
+    write(STDOUT_FILENO, "\x1b[H", 4);
     break;
   }
   }
 }
 
 void drawRows() {
-  for (int i = 0; i < E.screenrows; i++) {
+  for (int i = 0; i < E.screen_rows; i++) {
     int index = i + E.window_offset;
     if (index >= E.entries.size())
       break;
     std::string buf;
     buf = "» " + E.entries[index].path().filename().string();
     write(STDOUT_FILENO, buf.c_str(), buf.size());
-    if (i < E.screenrows - 1) {
+    if (i < E.screen_rows - 1) {
       write(STDOUT_FILENO, "\r\n", 2);
     }
   }
@@ -114,8 +117,11 @@ void drawRows() {
 int getWinSize(int *rows, int *cols) {
   struct winsize ws;
 
+  // If the window doesnt exist or is invalid then exit
   if (ioctl(STDOUT_FILENO, TIOCGWINSZ, &ws) == -1 || ws.ws_col == 0) {
     return -1;
+
+    // Pull the terminal window dimensions
   } else {
     *cols = ws.ws_col;
     *rows = ws.ws_row;
@@ -124,7 +130,7 @@ int getWinSize(int *rows, int *cols) {
 }
 
 void refreshScreen() {
-
+  // Clear screen and set cursor to top corner
   write(STDOUT_FILENO, "\x1b[2J", 4);
   write(STDOUT_FILENO, "\x1b[H", 4);
 
@@ -136,12 +142,13 @@ void refreshScreen() {
 }
 
 void initExplorer() {
-
   E.cx = 1;
 
-  if (getWinSize(&E.screenrows, &E.screencols) == -1)
+  // If the window comes back as -1 or invalid then "die"
+  if (getWinSize(&E.screen_rows, &E.screen_cols) == -1)
     die("getWinSize");
 
+  // If it isnt an invalid screen size then load the path into the entries
   loadEntriesFrPath(E.full_path);
 }
 
@@ -153,19 +160,18 @@ void loadEntriesFrPath(fs::path new_path) {
       E.entries.push_back(entry);
     }
   } else {
-    check_if_file(new_path);
-    // TODO Open with nvim not done
+    checkIfFile(new_path);
   }
 }
 
-void check_if_file(fs::path path_to_check) {
-  std::string file_to_check = path_to_check.filename().string();
-  if (fs::is_regular_file(file_to_check)) {
-    // check if image or binary or able to be opened in nvim
+void checkIfFile(fs::path path_to_check) {
+  std::string if_file = path_to_check.filename().string();
+  if (fs::is_regular_file(if_file)) {
+    // Check if image or binary or able to be opened in nvim
     std::string EXT = path_to_check.extension();
     if (EXT == ".png" || EXT == ".jpg" || EXT == ".jpeg" || EXT == ".gif" ||
         EXT == ".webp" || EXT == ".bmp") {
-      // open with image viewer
+      // Open with image viewer
       openInViewer(path_to_check);
     } else if (EXT == ".o" || EXT == ".a" || EXT == ".so" || EXT == ".ko" ||
                EXT == ".elf" || EXT == ".bin" || EXT == ".exe" ||
@@ -198,7 +204,7 @@ void check_if_file(fs::path path_to_check) {
 
       sleep(1);
     } else {
-      // open Nvim to file path
+      // Open Nvim to file path
       openInEditor(path_to_check);
     }
   } else {
@@ -212,21 +218,21 @@ void check_if_file(fs::path path_to_check) {
   }
 }
 
-// open Nvim to file path
+// Open Nvim to file path
 void openInEditor(const fs::path &file) {
-  disableRawMode(); // restore termios + leave alt screen
+  disableRawMode(); // Restore termios + leave alt screen
 
   pid_t pid = fork();
   if (pid == -1)
     die("fork");
   if (pid == 0) {
     execlp("nvim", "nvim", file.c_str(), nullptr);
-    _exit(127); // only reached if exec failed
+    _exit(127); // Only reached if exec failed
   }
-  waitpid(pid, nullptr, 0); // block until nvim quits
+  waitpid(pid, nullptr, 0); // Block until nvim quits
 
-  enableRawMode();                          // back to alt screen + raw
-  getWinSize(&E.screenrows, &E.screencols); // they may have resized
+  enableRawMode();                            // Back to alt screen + raw
+  getWinSize(&E.screen_rows, &E.screen_cols); // They may have resized
 }
 
 void openInViewer(const fs::path &file) {
@@ -240,5 +246,5 @@ void openInViewer(const fs::path &file) {
     execlp("imv", "imv", file.c_str(), nullptr);
     _exit(127);
   }
-  // no waitpid — imv is a Wayland window, your TUI keeps running
+  // No waitpid — imv is a Wayland window, your TUI keeps running
 }
