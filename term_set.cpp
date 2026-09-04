@@ -2,6 +2,7 @@
 #include <filesystem>
 #include <iostream>
 #include <sys/wait.h>
+#include <unistd.h>
 
 Config E;
 
@@ -45,12 +46,13 @@ char readKey() {
 void processKeypress() {
   char c = readKey();
   switch (c) {
+  // Quit
   case 'q':
     write(STDOUT_FILENO, "\x1b[2J", 4);
     write(STDOUT_FILENO, "\x1b[H", 4);
     exit(0);
     break;
-    // Rename
+  // Rename
   case 'r': {
     break;
   }
@@ -62,11 +64,10 @@ void processKeypress() {
   case 's': {
     break;
   }
-    // Inputs for navigation
-    // Open folder or file
+  // Inputs for navigation
+  // Open folder or file
   case 'l': {
-    E.previous_path = E.full_path;
-    fs::directory_entry folder_being_opened = E.entries[E.cx - 1];
+    fs::directory_entry folder_being_opened = E.entries[E.cur_row - 1];
     loadEntriesFrPath(folder_being_opened);
     write(STDOUT_FILENO, "\x1b[H", 4);
     break;
@@ -75,26 +76,33 @@ void processKeypress() {
   case 'k': {
     if (E.cx > 1) {
       E.cx--;
+      E.cur_row--;
     } else if (E.window_offset > 0) {
       E.window_offset--;
+      E.cur_row--;
     }
     break;
   }
   // Down
   case 'j': {
-    if (E.cx < E.screen_rows - (E.screen_rows / 2)) {
-      E.cx++;
-    } else if (E.window_offset + E.screen_rows < E.entries.size()) {
-      E.window_offset++;
-    } else if (E.cx < E.screen_rows) {
-      E.cx++;
+    if (E.cur_row < (E.entries.size())) {
+      if (E.cx < E.screen_rows - (E.screen_rows / 2)) {
+        E.cx++;
+        E.cur_row++;
+      } else if (E.window_offset + E.screen_rows < E.entries.size()) {
+        E.window_offset++;
+        E.cur_row++;
+      } else if (E.cx < E.screen_rows) {
+        E.cx++;
+        E.cur_row++;
+      }
     }
     break;
   }
-  // Back to previous folder (block if in /home/saoii/)
+  // Back to previous folder (block if in /home/sao)
   case 'h': {
-    loadEntriesFrPath(E.previous_path);
-    write(STDOUT_FILENO, "\x1b[H", 4);
+    loadPreviousPath(E.full_path);
+
     break;
   }
   }
@@ -136,7 +144,7 @@ void refreshScreen() {
 
   drawRows();
 
-  // put the cursor on the correct row with E.cx
+  // Put the cursor on the correct row with E.cx
   std::string seq = "\x1b[" + std::to_string(E.cx) + ";1H";
   write(STDOUT_FILENO, seq.c_str(), seq.size());
 }
@@ -155,18 +163,34 @@ void initExplorer() {
 void loadEntriesFrPath(fs::path new_path) {
   if (fs::is_directory(new_path)) {
     E.entries.clear();
-    E.cx = 0;
+    E.cx = 1;
+    E.cur_row = 1;
+    E.window_offset = 0;
     for (const auto &entry : fs::directory_iterator(new_path)) {
       E.entries.push_back(entry);
     }
+    E.full_path = new_path.string();
   } else {
     checkIfFile(new_path);
   }
 }
 
+void loadPreviousPath(std::string current_path_string) {
+  fs::path cur_path = current_path_string;
+  if (fs::exists(cur_path.parent_path())) {
+    if (cur_path != "/home/sao") {
+      E.full_path = cur_path.parent_path().string();
+      loadEntriesFrPath(E.full_path);
+      write(STDOUT_FILENO, "\x1b[1H", 4);
+    } else {
+      std::cout << "Cant go further back than the home directory" << std::endl;
+      sleep(1);
+    }
+  }
+}
+
 void checkIfFile(fs::path path_to_check) {
-  std::string if_file = path_to_check.filename().string();
-  if (fs::is_regular_file(if_file)) {
+  if (fs::is_regular_file(path_to_check)) {
     // Check if image or binary or able to be opened in nvim
     std::string EXT = path_to_check.extension();
     if (EXT == ".png" || EXT == ".jpg" || EXT == ".jpeg" || EXT == ".gif" ||

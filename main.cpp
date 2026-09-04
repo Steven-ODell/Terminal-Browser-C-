@@ -25,7 +25,6 @@ int main(int argc, char *argv[]) {
 
   // Set the path of the folder you are in to the browser directory
   E.full_path = fs::current_path().string();
-  E.previous_path = E.full_path;
 
   if (argc > 1) {
     E.full_path = E.full_path + argv[1];

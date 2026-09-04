@@ -16,8 +16,8 @@ struct Config {
   int screen_rows;
   int screen_cols;
   int window_offset = 0;
+  int cur_row;
   std::string full_path;
-  std::string previous_path;
   struct termios orig_termios;
   std::vector<std::filesystem::directory_entry> entries;
 };
@@ -47,3 +47,5 @@ void checkIfFile(fs::path path_to_check);
 void openInEditor(const fs::path &file);
 
 void openInViewer(const fs::path &file);
+
+void loadPreviousPath(std::string);
