@@ -27,7 +27,7 @@ int main(int argc, char *argv[]) {
   E.full_path = fs::current_path().string();
 
   if (argc > 1) {
-    E.full_path = E.full_path + argv[1];
+    E.full_path = E.full_path.string() + argv[1];
   }
 
   // Set the terminal to "Raw" mode

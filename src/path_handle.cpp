@@ -4,162 +4,6 @@
 #include <sys/wait.h>
 #include <unistd.h>
 
-Config E;
-
-void die(const char *s) {
-  write(STDOUT_FILENO, "\x1b[2J", 4);
-  write(STDOUT_FILENO, "\x1b[H", 4);
-
-  perror(s);
-  exit(1);
-}
-
-void disableRawMode() {
-  write(STDOUT_FILENO, "\x1b[?1049l", 8);
-  if (tcsetattr(STDIN_FILENO, TCSAFLUSH, &E.orig_termios) == -1)
-    die("tcsetattr");
-}
-
-void enableRawMode() {
-  tcgetattr(STDIN_FILENO, &E.orig_termios);
-  atexit(disableRawMode);
-
-  struct termios raw = E.orig_termios;
-  raw.c_iflag &= ~(IXON);
-  raw.c_oflag &= ~(OPOST);
-  raw.c_lflag &= ~(ECHO | ICANON | IEXTEN | ISIG);
-
-  tcsetattr(STDIN_FILENO, TCSAFLUSH, &raw);
-  write(STDOUT_FILENO, "\x1b[?1049h", 8);
-}
-
-char readKey() {
-  int nread;
-  char c;
-  while ((nread = read(STDIN_FILENO, &c, 1)) != 1) {
-    if (nread == -1 && errno != EAGAIN)
-      die("read");
-  }
-  return c;
-}
-
-void processKeypress() {
-  char c = readKey();
-  switch (c) {
-  // Quit
-  case 'q':
-    write(STDOUT_FILENO, "\x1b[2J", 4);
-    write(STDOUT_FILENO, "\x1b[H", 4);
-    exit(0);
-    break;
-  // Rename
-  case 'r': {
-    break;
-  }
-  // Preview
-  case 'p': {
-    break;
-  }
-  // Search
-  case 's': {
-    break;
-  }
-  // Inputs for navigation
-  // Open folder or file
-  case 'l': {
-    fs::directory_entry folder_being_opened = E.entries[E.cur_row - 1];
-    loadEntriesFrPath(folder_being_opened);
-    write(STDOUT_FILENO, "\x1b[H", 4);
-    break;
-  }
-  // Up
-  case 'k': {
-    if (E.cx > 1) {
-      E.cx--;
-      E.cur_row--;
-    } else if (E.window_offset > 0) {
-      E.window_offset--;
-      E.cur_row--;
-    }
-    break;
-  }
-  // Down
-  case 'j': {
-    if (E.cur_row < (E.entries.size())) {
-      if (E.cx < E.screen_rows - (E.screen_rows / 2)) {
-        E.cx++;
-        E.cur_row++;
-      } else if (E.window_offset + E.screen_rows < E.entries.size()) {
-        E.window_offset++;
-        E.cur_row++;
-      } else if (E.cx < E.screen_rows) {
-        E.cx++;
-        E.cur_row++;
-      }
-    }
-    break;
-  }
-  // Back to previous folder (block if in /home/sao)
-  case 'h': {
-    loadPreviousPath(E.full_path);
-
-    break;
-  }
-  }
-}
-
-void drawRows() {
-  for (int i = 0; i < E.screen_rows; i++) {
-    int index = i + E.window_offset;
-    if (index >= E.entries.size())
-      break;
-    std::string buf;
-    buf = "» " + E.entries[index].path().filename().string();
-    write(STDOUT_FILENO, buf.c_str(), buf.size());
-    if (i < E.screen_rows - 1) {
-      write(STDOUT_FILENO, "\r\n", 2);
-    }
-  }
-}
-
-int getWinSize(int *rows, int *cols) {
-  struct winsize ws;
-
-  // If the window doesnt exist or is invalid then exit
-  if (ioctl(STDOUT_FILENO, TIOCGWINSZ, &ws) == -1 || ws.ws_col == 0) {
-    return -1;
-
-    // Pull the terminal window dimensions
-  } else {
-    *cols = ws.ws_col;
-    *rows = ws.ws_row;
-    return 0;
-  }
-}
-
-void refreshScreen() {
-  // Clear screen and set cursor to top corner
-  write(STDOUT_FILENO, "\x1b[2J", 4);
-  write(STDOUT_FILENO, "\x1b[H", 4);
-
-  drawRows();
-
-  // Put the cursor on the correct row with E.cx
-  std::string seq = "\x1b[" + std::to_string(E.cx) + ";1H";
-  write(STDOUT_FILENO, seq.c_str(), seq.size());
-}
-
-void initExplorer() {
-  E.cx = 1;
-
-  // If the window comes back as -1 or invalid then "die"
-  if (getWinSize(&E.screen_rows, &E.screen_cols) == -1)
-    die("getWinSize");
-
-  // If it isnt an invalid screen size then load the path into the entries
-  loadEntriesFrPath(E.full_path);
-}
-
 void loadEntriesFrPath(fs::path new_path) {
   if (fs::is_directory(new_path)) {
     E.entries.clear();
@@ -169,17 +13,16 @@ void loadEntriesFrPath(fs::path new_path) {
     for (const auto &entry : fs::directory_iterator(new_path)) {
       E.entries.push_back(entry);
     }
-    E.full_path = new_path.string();
+    E.full_path.assign(new_path);
   } else {
     checkIfFile(new_path);
   }
 }
 
-void loadPreviousPath(std::string current_path_string) {
-  fs::path cur_path = current_path_string;
+void loadPreviousPath(fs::path cur_path) {
   if (fs::exists(cur_path.parent_path())) {
     if (cur_path != "/home/sao") {
-      E.full_path = cur_path.parent_path().string();
+      E.full_path.assign(cur_path.parent_path());
       loadEntriesFrPath(E.full_path);
       write(STDOUT_FILENO, "\x1b[1H", 4);
     } else {
