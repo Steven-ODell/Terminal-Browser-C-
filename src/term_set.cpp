@@ -76,6 +76,12 @@ void refreshScreen() {
     write(STDOUT_FILENO, line.c_str(), line.size());
   }
 
+  if (E.state == Config::State::BrowserHidden) {
+    std::string line = "\x1b[" + std::to_string(E.screen_rows) + ";1H";
+    line += "Folders are hidden";
+    write(STDOUT_FILENO, line.c_str(), line.size());
+  }
+
   // Put the cursor on the correct row with E.cx
   std::string seq = "\x1b[" + std::to_string(E.cx) + ";1H";
   write(STDOUT_FILENO, seq.c_str(), seq.size());

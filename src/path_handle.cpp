@@ -16,6 +16,13 @@ void loadEntriesFrPath(fs::path new_path) {
       E.entries.push_back(entry);
     }
     E.full_path.assign(new_path);
+    if (E.state == Config::State::BrowserHidden) {
+      for (int i = E.entries.size() - 1; i >= 0; i--) {
+        if (E.entries[i].path().filename().string()[0] == '.') {
+          E.entries.erase(E.entries.begin() + i);
+        }
+      }
+    }
   } else {
     checkIfFile(new_path);
   }
@@ -23,7 +30,7 @@ void loadEntriesFrPath(fs::path new_path) {
 
 void loadPreviousPath(fs::path cur_path) {
   if (fs::exists(cur_path.parent_path())) {
-    if (cur_path != "/home/sao") {
+    if (cur_path != E.base_dir) {
       E.full_path.assign(cur_path.parent_path());
       loadEntriesFrPath(E.full_path);
       write(STDOUT_FILENO, "\x1b[1H", 4);

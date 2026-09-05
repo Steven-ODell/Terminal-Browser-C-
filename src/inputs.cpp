@@ -2,7 +2,6 @@
 #include "path_handle.h"
 #include "term_set.h"
 #include <filesystem>
-#include <iostream>
 
 char readKey() {
   int nread;
@@ -19,7 +18,8 @@ void processKeypress() {
   switch (c) {
   // Quit
   case 'q': {
-    if (E.state == Config::State::Browser) {
+    if (E.state == Config::State::Browser ||
+        E.state == Config::State::BrowserHidden) {
       write(STDOUT_FILENO, "\x1b[2J", 4);
       write(STDOUT_FILENO, "\x1b[H", 3);
       exit(0);
@@ -29,19 +29,33 @@ void processKeypress() {
     break;
   }
   case 'Q': {
-    if (E.state == Config::State::Browser) {
+    if (E.state == Config::State::Browser ||
+        E.state == Config::State::BrowserHidden) {
       write(STDOUT_FILENO, "\x1b[2J", 4);
       write(STDOUT_FILENO, "\x1b[H", 3);
       exit(0);
     } else if (E.state == Config::State::Rename) {
+      E.new_name += c;
+    }
+  }
+  // Esc Key
+  case '\x1b': {
+    if (E.state == Config::State::Browser ||
+        E.state == Config::State::BrowserHidden) {
       write(STDOUT_FILENO, "\x1b[2J", 4);
       write(STDOUT_FILENO, "\x1b[H", 3);
       exit(0);
+    } else if (E.state == Config::State::Rename) {
+      loadEntriesFrPath(E.full_path);
+      E.state = Config::State::Browser;
+      E.new_name = "";
     }
+    break;
   }
   // Rename
   case 'r': {
-    if (E.state == Config::State::Browser) {
+    if (E.state == Config::State::Browser ||
+        E.state == Config::State::BrowserHidden) {
       E.state = Config::State::Rename;
     } else if (E.state == Config::State::Rename) {
       E.new_name += c;
@@ -55,13 +69,21 @@ void processKeypress() {
     }
     break;
   }
-  // Open
-  case 'o': {
+  // Delete
+  case 'd': {
     if (E.state == Config::State::Rename) {
       E.new_name += c;
-      break;
-    } else if (E.state == Config::State::Browser) {
+    }
+    break;
+  }
+  // Open
+  case 'o': {
+    if (E.state == Config::State::Browser ||
+        E.state == Config::State::BrowserHidden) {
       openCurrentPath(E.entries[E.cur_row - 1]);
+      break;
+    } else if (E.state == Config::State::Rename) {
+      E.new_name += c;
       break;
     }
   }
@@ -75,10 +97,12 @@ void processKeypress() {
 
   // Backspace Key
   case '\x7f': {
-    if (E.state == Config::State::Browser) {
+    if (E.state == Config::State::Browser ||
+        E.state == Config::State::BrowserHidden) {
       loadPreviousPath(E.full_path);
     } else if (E.state == Config::State::Rename) {
-      E.new_name.pop_back();
+      if (E.new_name.size() > 0)
+        E.new_name.pop_back();
     }
     break;
   }
@@ -87,7 +111,8 @@ void processKeypress() {
   case '\r': {
     if (E.state == Config::State::Rename) {
       renamePath();
-    } else if (E.state == Config::State::Browser) {
+    } else if (E.state == Config::State::Browser ||
+               E.state == Config::State::BrowserHidden) {
       openCurrentPath(E.entries[E.cur_row - 1]);
     }
     break;
@@ -96,7 +121,8 @@ void processKeypress() {
   // Inputs for navigation
   // Open folder or file
   case 'l': {
-    if (E.state == Config::State::Browser) {
+    if (E.state == Config::State::Browser ||
+        E.state == Config::State::BrowserHidden) {
       openCurrentPath(E.entries[E.cur_row - 1]);
     } else if (E.state == Config::State::Rename) {
       E.new_name += c;
@@ -105,7 +131,8 @@ void processKeypress() {
   }
   // Up
   case 'k': {
-    if (E.state == Config::State::Browser) {
+    if (E.state == Config::State::Browser ||
+        E.state == Config::State::BrowserHidden) {
       if (E.cx > 1) {
         E.cx--;
         E.cur_row--;
@@ -120,7 +147,8 @@ void processKeypress() {
   }
   // Down
   case 'j': {
-    if (E.state == Config::State::Browser) {
+    if (E.state == Config::State::Browser ||
+        E.state == Config::State::BrowserHidden) {
       if (E.cur_row < (E.entries.size())) {
         if (E.cx < E.screen_rows - (E.screen_rows / 2)) {
           E.cx++;
@@ -140,8 +168,23 @@ void processKeypress() {
   }
   // Back to previous folder (block if in /home/sao)
   case 'h': {
-    if (E.state == Config::State::Browser) {
+    if (E.state == Config::State::Browser ||
+        E.state == Config::State::BrowserHidden) {
       loadPreviousPath(E.full_path);
+    } else if (E.state == Config::State::Rename) {
+      E.new_name += c;
+    }
+    break;
+  }
+  case 'H': {
+    if (E.state == Config::State::Browser) {
+      E.state = Config::State::BrowserHidden;
+      loadEntriesFrPath(E.full_path);
+      break;
+    } else if (E.state == Config::State::BrowserHidden) {
+      E.state = Config::State::Browser;
+      loadEntriesFrPath(E.full_path);
+      break;
     } else if (E.state == Config::State::Rename) {
       E.new_name += c;
     }
