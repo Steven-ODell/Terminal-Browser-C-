@@ -69,6 +69,13 @@ void refreshScreen() {
 
   drawRows();
 
+  if (E.state == Config::State::Rename) {
+    std::string line = "\x1b[" + std::to_string(E.screen_rows) + ";1H";
+    line += "Rename '" + E.entries[E.cur_row - 1].path().filename().string() +
+            "' to: " + E.new_name;
+    write(STDOUT_FILENO, line.c_str(), line.size());
+  }
+
   // Put the cursor on the correct row with E.cx
   std::string seq = "\x1b[" + std::to_string(E.cx) + ";1H";
   write(STDOUT_FILENO, seq.c_str(), seq.size());

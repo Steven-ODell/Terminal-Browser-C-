@@ -9,6 +9,7 @@ void loadEntriesFrPath(fs::path new_path) {
   if (fs::is_directory(new_path)) {
     E.entries.clear();
     E.cx = 1;
+    E.new_name = "";
     E.cur_row = 1;
     E.window_offset = 0;
     for (const auto &entry : fs::directory_iterator(new_path)) {
@@ -127,5 +128,22 @@ void openCurrentPath(fs::path path) {
     write(STDOUT_FILENO, "\x1b[H", 3);
     sleep(1);
     loadEntriesFrPath(previous_path);
+  }
+}
+
+void renamePath() {
+  if (E.new_name == "") {
+    std::cout << "Error: Field was empty" << std::endl;
+    sleep(1);
+  } else {
+    try {
+      fs::rename(E.entries[E.cur_row - 1].path(),
+                 E.entries[E.cur_row - 1].path().parent_path() / E.new_name);
+      loadEntriesFrPath(E.full_path);
+      E.state = Config::State::Browser;
+      E.new_name = "";
+    } catch (const fs::filesystem_error &e) {
+      std::cout << "Error: " << e.what() << std::endl;
+    }
   }
 }
