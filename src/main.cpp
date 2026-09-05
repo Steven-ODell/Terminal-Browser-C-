@@ -1,4 +1,4 @@
-#include "src/term_set.h"
+#include "term_set.h"
 #include <csignal>
 
 /*
