@@ -12,62 +12,73 @@ Binary target is `Cexp`.
 cmake -S . -B out/Debug
 cmake --build out/Debug
 ./out/Debug/Cexp
-
 ```
 
-Requires C++17 for std::filesystem. Optionally takes a path argument to open
-into a starting folder.
+Requires C++17 for `std::filesystem`, pinned in `CMakeLists.txt`. Takes an
+optional path argument to
 
-Keys
+## Keys
 
-┌─────┬───────────────────────────────────┐
-│ Key │              Action               │
-├─────┼───────────────────────────────────┤
-│ j   │ Move down                         │
-├─────┼───────────────────────────────────┤
-│ k   │ Move up                           │
-├─────┼───────────────────────────────────┤
-│ l   │ Open folder, or open file by type │
-├─────┼───────────────────────────────────┤
-│ h   │ Go to parent folder               │
-├─────┼───────────────────────────────────┤
-│ q   │ Quit                              │
-├─────┼───────────────────────────────────┤
-│ r   │ Rename (not implemented)          │
-├─────┼───────────────────────────────────┤
-│ p   │ Preview (not implemented)         │
-├─────┼───────────────────────────────────┤
-│ o   │ Open (not implemented)            │
-├─────┼───────────────────────────────────┤
-│ s   │ Search (not implemented)          │
-└─────┴───────────────────────────────────┘
+| Key | Action |
+|---|---|
+| `j` | Move down |
+| `k` | Move up |
+| `l` | Open folder, or o
+| `h` | Go to parent folder |
+| `Enter` | Same as `l` |
+| `Backspace` | Same as `h` |
+| `o` | Open selected ent
+| `r` | Rename selected entry |
+| `H` | Toggle dotfiles |
+| `q` `Q` `Esc` | Quit |
+| `d` | Delete (not imple
+| `p` | Preview (not implemented) |
+| `s` | Search (not imple
+
+In rename mode the bindinthe new name, `Backspace`
+deletes a character, `Enter` commits the rename, and `Esc` cancels and returns
+to browsing.
 
 ## How files open
 
-Selecting a file checks its extension:
+Selecting a file checks i
 
-- Images (.png, .jpg, .gif, ...) open in imv as a detached child, s
-  the TUI keeps running
-- A blocklist of known binary and document formats is refused outri
-- Everything else opens in nvim, blocking until you quit it
-- As of now the base path is hard coded but will be configurable in the future. This is going to be $HOME
+- Images (.png, .jpg, .gitached child, so the TUI
+  keeps running
+- A blocklist of known birefused outright
+- Everything else opens in `nvim`, blocking until you quit it
 
-SIGCHLD is ignored in main so detached image viewers do not become zombies.
+`SIGCHLD` is ignored in `main` so detached image viewers do not become zombies.
 
 ## Design notes
 
-The terminal is put in raw mode with ECHO, ICANON, IEXTEN, ISIG, IXON
-and OPOST cleared, and the alternate screen buffer (\x1b[?1049h) is
-so the shell scrollback is preserved on exit. disableRawMode is registered
-with atexit, so termios is restored on any normal exit path.
+The terminal is put in raw mode with `ECHO`, `ICANON`, `IEXTEN`, `ISIG`, `IXON`
+and `OPOST` cleared, and `\x1b[?1049h`) is entered
+so the shell scrollback is preserved on exit. `disableRawMode` is registered
+with `atexit`, so termiosit path.
 
-Scroll state is three fields on the global Config E: cx (cursor row
-screen, 1 based), window_offset (index of the first visible entry), and
-cur_row (index into entries).
+State lives on a single gtion is three fields:
+`cx` (cursor row on screen, 1 based), `window_offset` (index of the first
+visible entry), and `cur_
+
+Modes are a `State` enum  and `BrowserHidden` are
+the two browsing modes, differing only in whether `loadEntriesFrPath` strips
+dotfiles after reading ths at load time rather
+than at draw time, so `entries` always holds exactly what is on screen.
 
 ## Known issues
 
-- No window resize handling, no SIGWINCH handler
-- Rename, preview, search, and open are stubs
-- Missing row at the bottom causes flicker
-- Cannot hide dotfiles
+- No window resize handling, no `SIGWINCH` handler
+- Missing row at the bott
+- Delete, preview, and search are stubs
+- The parent-directory guded `/home/sao` rather
+  than `$HOME`, so it does nothing on any other machine
+- The path argument is coirectory instead of
+  joined, so absolute paths are not handled and there is no separator
+- Only one argument is re
+- `Q` falls through to the `Esc` case, so pressing it during a rename cancels
+  the rename instead of t
+- Cancelling a rename with `Esc` always returns to `Browser`, dropping
+  `BrowserHidden` if dotf
+- Hidden-file state is a browsing mode rather than a flag, so every new key
+  binding has to check foHidden`
