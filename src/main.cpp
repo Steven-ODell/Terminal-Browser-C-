@@ -18,6 +18,8 @@
  the terminal for the preview line pull length
  */
 
+namespace fs = std::filesystem;
+
 int main(int argc, char *argv[]) {
 
   // Set up the signal for the nvim/image viewer triggers

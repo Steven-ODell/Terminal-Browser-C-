@@ -1,6 +1,6 @@
 #include "term_set.h"
+#include "path_handle.h"
 #include <filesystem>
-#include <iostream>
 #include <sys/wait.h>
 #include <unistd.h>
 
@@ -8,7 +8,7 @@ Config E;
 
 void die(const char *s) {
   write(STDOUT_FILENO, "\x1b[2J", 4);
-  write(STDOUT_FILENO, "\x1b[H", 4);
+  write(STDOUT_FILENO, "\x1b[H", 3);
 
   perror(s);
   exit(1);
@@ -25,7 +25,7 @@ void enableRawMode() {
   atexit(disableRawMode);
 
   struct termios raw = E.orig_termios;
-  raw.c_iflag &= ~(IXON);
+  raw.c_iflag &= ~(IXON | ICRNL);
   raw.c_oflag &= ~(OPOST);
   raw.c_lflag &= ~(ECHO | ICANON | IEXTEN | ISIG);
 
@@ -65,7 +65,7 @@ int getWinSize(int *rows, int *cols) {
 void refreshScreen() {
   // Clear screen and set cursor to top corner
   write(STDOUT_FILENO, "\x1b[2J", 4);
-  write(STDOUT_FILENO, "\x1b[H", 4);
+  write(STDOUT_FILENO, "\x1b[H", 3);
 
   drawRows();
 
@@ -75,6 +75,7 @@ void refreshScreen() {
 }
 
 void initExplorer() {
+  E.state = Config::State::Browser;
   E.cx = 1;
 
   // If the window comes back as -1 or invalid then "die"

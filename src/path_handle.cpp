@@ -1,3 +1,4 @@
+#include "path_handle.h"
 #include "term_set.h"
 #include <filesystem>
 #include <iostream>
@@ -114,4 +115,17 @@ void openInViewer(const fs::path &file) {
     _exit(127);
   }
   // No waitpid — imv is a Wayland window, your TUI keeps running
+}
+
+void openCurrentPath(fs::path path) {
+  fs::path previous_path = path.parent_path();
+  loadEntriesFrPath(path);
+  if (E.entries.size() > 0) {
+    write(STDOUT_FILENO, "\x1b[H", 3);
+  } else {
+    std::cout << "This folder is empty" << std::endl;
+    write(STDOUT_FILENO, "\x1b[H", 3);
+    sleep(1);
+    loadEntriesFrPath(previous_path);
+  }
 }

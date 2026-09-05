@@ -1,7 +1,8 @@
 #include "inputs.h"
 #include "path_handle.h"
-
-namespace fs = std::filesystem;
+#include "term_set.h"
+#include <filesystem>
+#include <iostream>
 
 char readKey() {
   int nread;
@@ -19,12 +20,34 @@ void processKeypress() {
   // Quit
   case 'q':
     write(STDOUT_FILENO, "\x1b[2J", 4);
-    write(STDOUT_FILENO, "\x1b[H", 4);
+    write(STDOUT_FILENO, "\x1b[H", 3);
     exit(0);
     break;
   // Rename
   case 'r': {
-    break;
+    if (E.state == Config::State::Browser) {
+      E.state = Config::State::Rename;
+      write(STDOUT_FILENO, "\x1b[2J", 4);
+      std::cout << "Rename \""
+                << E.entries[E.cur_row].path().filename().string()
+                << "\" to:" << std::endl;
+      write(STDOUT_FILENO, "\x1b[2H", 3);
+      std::string new_name;
+      std::cin >> new_name;
+      if (new_name == "") {
+        std::cout << "Rename is invalid. Cant name a folder ''" << std::endl;
+        sleep(1);
+        break;
+      } else if (fs::exists(E.entries[E.cur_row - 1])) {
+        try {
+          fs::rename(E.entries[E.cur_row - 1].path().parent_path(), new_name);
+        } catch (const fs::filesystem_error &e) {
+          std::cerr << "Filesystem error occurred: " << e.what() << std::endl;
+        }
+      }
+      loadEntriesFrPath(E.full_path);
+      break;
+    }
   }
   // Preview
   case 'p': {
@@ -32,18 +55,23 @@ void processKeypress() {
   }
   // Open
   case 'o': {
+    openCurrentPath(E.entries[E.cur_row - 1]);
     break;
   }
   // Search
   case 's': {
     break;
   }
+
   // Inputs for navigation
   // Open folder or file
   case 'l': {
-    fs::directory_entry folder_being_opened = E.entries[E.cur_row - 1];
-    loadEntriesFrPath(folder_being_opened);
-    write(STDOUT_FILENO, "\x1b[H", 4);
+    if (E.state == Config::State::Rename) {
+      break;
+    }
+    if (E.state == Config::State::Browser) {
+      openCurrentPath(E.entries[E.cur_row - 1]);
+    }
     break;
   }
   // Up

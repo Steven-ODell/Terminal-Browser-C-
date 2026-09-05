@@ -1,4 +1,4 @@
-#include "path_handle.h"
+#pragma once
 #include <asm-generic/ioctls.h>
 #include <fcntl.h>
 #include <filesystem>
@@ -18,6 +18,8 @@ struct Config {
   std::filesystem::path full_path;
   struct termios orig_termios;
   std::vector<std::filesystem::directory_entry> entries;
+  enum class State { Browser, Rename, Search, Preview, Delete };
+  State state;
 };
 
 extern Config E;
