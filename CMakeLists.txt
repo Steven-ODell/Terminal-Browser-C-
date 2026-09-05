@@ -5,7 +5,7 @@ project(MyProject)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 add_executable(Cexp
-    src/main.cpp
+    main.cpp
     src/term_set.h
     src/term_set.cpp
     src/inputs.h
