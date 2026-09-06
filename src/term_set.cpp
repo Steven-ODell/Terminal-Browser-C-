@@ -76,9 +76,17 @@ void refreshScreen() {
     write(STDOUT_FILENO, line.c_str(), line.size());
   }
 
-  if (E.state == Config::State::BrowserHidden) {
+  else if (E.state == Config::State::BrowserHidden) {
     std::string line = "\x1b[" + std::to_string(E.screen_rows) + ";1H";
     line += "Folders are hidden";
+    write(STDOUT_FILENO, line.c_str(), line.size());
+  }
+
+  else if (E.state == Config::State::Delete) {
+    std::string line = "\x1b[" + std::to_string(E.screen_rows) + ";1H";
+    line += "Are you sure you want to delete '" +
+            E.entries[E.cur_row - 1].path().filename().string() + E.new_name +
+            ": [y/n]";
     write(STDOUT_FILENO, line.c_str(), line.size());
   }
 
@@ -88,7 +96,7 @@ void refreshScreen() {
 }
 
 void initExplorer() {
-  E.state = Config::State::Browser;
+  E.state = Config::State::BrowserHidden;
   E.cx = 1;
 
   // If the window comes back as -1 or invalid then "die"

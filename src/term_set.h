@@ -16,6 +16,7 @@ struct Config {
   int screen_cols;
   int window_offset = 0;
   int cur_row;
+  std::string del_choice;
   std::string new_name;
   std::filesystem::path full_path;
   struct termios orig_termios;

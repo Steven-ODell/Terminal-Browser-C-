@@ -37,6 +37,7 @@ void processKeypress() {
     } else if (E.state == Config::State::Rename) {
       E.new_name += c;
     }
+    break;
   }
   // Esc Key
   case '\x1b': {
@@ -69,9 +70,48 @@ void processKeypress() {
     }
     break;
   }
+  case 'y': {
+    if (E.state == Config::State::Rename) {
+      E.new_name += c;
+    } else if (E.state == Config::State::Delete) {
+      deletePath(E.entries[E.cur_row - 1]);
+    }
+    break;
+  }
+  case 'Y': {
+    if (E.state == Config::State::Rename) {
+      E.new_name += c;
+    } else if (E.state == Config::State::Delete) {
+      deletePath(E.entries[E.cur_row - 1]);
+    }
+    break;
+  }
+  case 'n': {
+    if (E.state == Config::State::Rename) {
+      E.new_name += c;
+    } else if (E.state == Config::State::Delete) {
+      loadEntriesFrPath(E.full_path);
+      E.state = Config::State::Browser;
+      E.del_choice = "";
+    }
+    break;
+  }
+  case 'N': {
+    if (E.state == Config::State::Rename) {
+      E.new_name += c;
+    } else if (E.state == Config::State::Delete) {
+      loadEntriesFrPath(E.full_path);
+      E.state = Config::State::Browser;
+      E.del_choice = "";
+    }
+    break;
+  }
   // Delete
   case 'd': {
-    if (E.state == Config::State::Rename) {
+    if (E.state == Config::State::Browser ||
+        E.state == Config::State::BrowserHidden) {
+      E.state = Config::State::Delete;
+    } else if (E.state == Config::State::Rename) {
       E.new_name += c;
     }
     break;
@@ -81,11 +121,10 @@ void processKeypress() {
     if (E.state == Config::State::Browser ||
         E.state == Config::State::BrowserHidden) {
       openCurrentPath(E.entries[E.cur_row - 1]);
-      break;
     } else if (E.state == Config::State::Rename) {
       E.new_name += c;
-      break;
     }
+    break;
   }
   // Search
   case 's': {

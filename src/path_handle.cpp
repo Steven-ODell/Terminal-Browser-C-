@@ -154,3 +154,20 @@ void renamePath() {
     }
   }
 }
+
+void deletePath(fs::path incoming_path) {
+  if (fs::exists(incoming_path)) {
+    try {
+      fs::remove(incoming_path);
+    } catch (const fs::filesystem_error &e) {
+      std::cout << "Error: " << e.what() << std::endl;
+      sleep(2);
+    }
+  } else {
+    std::cout << "File doesnt exist to delete" << std::endl;
+    sleep(1);
+  }
+  loadEntriesFrPath(E.full_path);
+  E.state = Config::State::BrowserHidden;
+  E.del_choice = "";
+}
